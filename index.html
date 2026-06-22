@@ -35,7 +35,8 @@
   header.board{position:sticky;top:0;z-index:50;background:rgba(22,19,31,.97);color:#fff;
     border-bottom:3px solid var(--magenta);box-shadow:0 10px 30px -20px rgba(0,0,0,.8);}
   .board-inner{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px}
-  .brand{display:flex;align-items:baseline;gap:10px;line-height:1}
+  .brand{display:flex;align-items:baseline;gap:10px;line-height:1;cursor:pointer}
+  .brand:hover .badge26{opacity:.85}
   .brand .badge26{font-family:'Anton',sans-serif;font-size:30px;letter-spacing:1px;
     background:linear-gradient(92deg,var(--magenta),#ff7ac1 55%,var(--green));
     -webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -48,7 +49,7 @@
   .stat{background:#231f30;border:1px solid #342f46;border-radius:10px;padding:6px 11px;min-width:74px}
   .stat .k{font-family:'Anton',sans-serif;font-size:22px;line-height:1}
   .stat .l{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:#9b94ab;margin-top:2px}
-  .stat.tengo .k{color:#46e08a}.stat.repe .k{color:#ffc658}.stat.pct .k{color:#ff7ac1}
+  .stat.tengo .k{color:#46e08a}.stat.repe .k{color:#ffc658}.stat.pct .k{color:#ff7ac1}.stat.falta .k{color:#ff9466}
   .progress-wrap{width:100%;margin-top:2px}
   .progress{height:8px;border-radius:99px;background:#2c2740;overflow:hidden}
   .progress > i{display:block;height:100%;width:0;border-radius:99px;
@@ -248,11 +249,12 @@
 
 <header class="board">
   <div class="board-inner">
-    <div class="brand"><span class="badge26">MUNDIAL 26</span><span class="sub">Mi álbum</span></div>
+    <div class="brand" id="brand" title="Volver arriba y limpiar la búsqueda"><span class="badge26">MUNDIAL 26</span><span class="sub">Mi álbum</span></div>
     <button class="theme-btn" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema"><span class="t-ic">🌙</span> <span class="mode-tag t-lb">Oscuro</span></button>
     <div class="scores">
       <div class="stat tengo"><div class="k" id="s-have">0</div><div class="l">Pegadas</div></div>
       <div class="stat pct"><div class="k" id="s-pct">0%</div><div class="l">de 980</div></div>
+      <div class="stat falta"><div class="k" id="s-falta">980</div><div class="l">Te faltan</div></div>
       <div class="stat repe"><div class="k" id="s-repe">0</div><div class="l">Repetidas</div></div>
     </div>
     <div class="progress-wrap"><div class="progress"><i id="bar"></i></div></div>
@@ -2724,7 +2726,7 @@ var qrcode = function() {
   // ---------- FWC card ----------
   const fwcCard = document.createElement('section');
   fwcCard.className = 'fwc'; fwcCard.id = 'fwc';
-  fwcCard.dataset.search = 'fwc especiales especial emblema mascota balon eslogan museum anfitrion panini';
+  fwcCard.dataset.search = 'fwc especiales especial';
   fwcCard.innerHTML = `
     <div class="holo-strip"></div>
     <div class="team-head" data-toggle>
@@ -2762,7 +2764,7 @@ var qrcode = function() {
     g.teams.forEach(([code,name,flag])=>{
       const team = document.createElement('section');
       team.className='team'; team.id='t-'+code;
-      team.dataset.search=(name+' '+code).toLowerCase(); team.dataset.code=code; team.dataset.flag=flag; team.dataset.name=name;
+      team.dataset.search=(name+' '+code).toLowerCase(); team.dataset.group=g.name.toLowerCase(); team.dataset.code=code; team.dataset.flag=flag; team.dataset.name=name;
       team.innerHTML = `
         <div class="team-head">
           <span class="flag">${flag}</span>
@@ -2833,6 +2835,7 @@ var qrcode = function() {
       const c=state[id]; if(c>=1) have++; if(c>=2) repe+=(c-1);
     }
     document.getElementById('s-have').textContent=have;
+    document.getElementById('s-falta').textContent=BASE_TOTAL-have;
     document.getElementById('s-repe').textContent=repe;
     document.getElementById('s-pct').textContent=Math.round(have/BASE_TOTAL*100)+"%";
     document.getElementById('bar').style.width=(have/BASE_TOTAL*100)+"%";
@@ -2897,13 +2900,22 @@ var qrcode = function() {
   search.addEventListener('input', ()=>{
     const q=norm(search.value.trim());
     if(q){ document.querySelectorAll('.conf-head.collapsed').forEach(h=>h.classList.remove('collapsed')); fwcCard.classList.remove('collapsed'); }
-    document.querySelectorAll('.team').forEach(t=>{ t.style.display=(!q||norm(t.dataset.search).includes(q))?'':'none'; });
+    document.querySelectorAll('.team').forEach(t=>{
+      const hay=norm(t.dataset.search);                 // país: nombre + código
+      const grp=norm(t.dataset.group||'');              // grupo: "grupo a"
+      const match = !q || hay.includes(q) || (q.length>=4 && grp.startsWith(q));
+      t.style.display = match ? '' : 'none';
+    });
     document.querySelectorAll('.conf-head').forEach(h=>{
       let next=h.nextElementSibling, vis=false;
       if(next && next.classList.contains('teams')) vis=[...next.children].some(c=>c.style.display!=='none');
       h.style.display=vis?'':'none';
     });
     fwcCard.style.display=(!q||norm(fwcCard.dataset.search).includes(q))?'':'none';
+  });
+  document.getElementById('brand').addEventListener('click', ()=>{
+    search.value=''; search.dispatchEvent(new Event('input'));
+    window.scrollTo({top:0, behavior:'smooth'});
   });
 
   // ---------- Colapsar ----------
