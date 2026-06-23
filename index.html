@@ -2928,7 +2928,7 @@ var qrcode = function() {
     const rows=[];
     FWC_SHARE.forEach(r=>rows.push({label:r.label, entries:r.entries}));
     document.querySelectorAll('.team:not(.cc-card)').forEach(t=>{
-      rows.push({ label:t.dataset.code,
+      rows.push({ label:t.dataset.code+" "+t.dataset.flag,
         entries:[...t.querySelectorAll('.tile')].map(el=>[el.dataset.id, el.dataset.num]) });
     });
     rows.push({label:"CC 🥤", entries:CC_ENTRIES});
