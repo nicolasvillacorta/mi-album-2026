@@ -210,6 +210,8 @@
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:600;
     opacity:0;pointer-events:none;transition:.25s;z-index:200;box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* Botón flotante de modo (solo celular) */
+  #erase-fab{display:none}
   #tip{position:fixed;z-index:300;pointer-events:none;background:#1f1b2b;color:#fff;border:1px solid #3a3550;
     padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:600;line-height:1.2;white-space:nowrap;
     box-shadow:0 10px 26px -10px rgba(0,0,0,.6);opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s}
@@ -220,6 +222,18 @@
     .theme-btn .t-lb{display:none}
     .stat{min-width:64px;padding:5px 9px}.stat .k{font-size:18px}
     .teams{grid-template-columns:1fr}
+    #erase-fab{display:flex;align-items:center;gap:7px;position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:80;
+      font:inherit;font-weight:700;font-size:14px;cursor:pointer;color:var(--green-deep);background:rgba(255,255,255,.9);
+      border:1.5px solid var(--green);border-radius:99px;padding:11px 16px;box-shadow:0 10px 26px -8px rgba(22,19,31,.5);
+      -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+      opacity:0;transform:translateY(160%);pointer-events:none;
+      transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .22s,background .15s,border-color .15s,color .15s}
+    #erase-fab.show{opacity:1;transform:translateY(0);pointer-events:auto}
+    #erase-fab:active{transform:translateY(0) scale(.94)}
+    #erase-fab span:first-child{font-size:15px;line-height:1}
+    body.erase #erase-fab{color:var(--magenta-deep);border-color:var(--magenta);background:rgba(253,231,239,.92)}
+    html.dark #erase-fab{background:rgba(27,24,37,.9);color:#46d488;border-color:var(--green)}
+    html.dark body.erase #erase-fab{color:#ff66b2;border-color:var(--magenta);background:rgba(43,20,32,.92)}
   }
   @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 
@@ -322,6 +336,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<button id="erase-fab" type="button" aria-label="Cambiar entre modo sumar y restar"><span id="fab-icon">➕</span><span id="fab-label">Sumar</span></button>
 
 <div class="overlay" id="overlay-import">
   <div class="modal">
@@ -2873,14 +2888,28 @@ var qrcode = function() {
 
   // ---------- Modo sumar / restar ----------
   const eraseBtn=document.getElementById('erase-toggle');
-  eraseBtn.addEventListener('click', ()=>{
-    eraseMode=!eraseMode;
+  const eraseFab=document.getElementById('erase-fab');
+  function setEraseMode(on){
+    eraseMode=on;
     document.body.classList.toggle('erase', eraseMode);
     eraseBtn.classList.toggle('erase-on', eraseMode);
-    document.getElementById('erase-icon').textContent=eraseMode?"➖":"➕";
+    const ic=eraseMode?"➖":"➕";
+    document.getElementById('erase-icon').textContent=ic;
     document.getElementById('erase-label').textContent=eraseMode?"Modo restar":"Modo sumar";
+    document.getElementById('fab-icon').textContent=ic;
+    document.getElementById('fab-label').textContent=eraseMode?"Restar":"Sumar";
     toast(eraseMode?"Modo restar: tocá para quitar":"Modo sumar: tocá para agregar");
-  });
+  }
+  eraseBtn.addEventListener('click', ()=> setEraseMode(!eraseMode));
+  eraseFab.addEventListener('click', ()=> setEraseMode(!eraseMode));
+  // El botón flotante (solo celular) aparece al bajar; queda oculto arriba para no molestar
+  let fabTick=false;
+  function updateFab(){
+    eraseFab.classList.toggle('show', window.scrollY>260);
+    fabTick=false;
+  }
+  window.addEventListener('scroll', ()=>{ if(!fabTick){ fabTick=true; requestAnimationFrame(updateFab); } }, {passive:true});
+  updateFab();
 
   // ---------- Info de modos (popover) ----------
   const modeInfo=document.getElementById('mode-info'), modePop=document.getElementById('mode-pop');
