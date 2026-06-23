@@ -102,6 +102,7 @@
   .conf-head.collapsed + .teams{display:none}
 
   .teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .teams.teams-fwc{display:block}
   .team{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;scroll-margin-top:150px}
   .team-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
   .team .team-head{cursor:default}
@@ -252,10 +253,10 @@
     <div class="brand" id="brand" title="Volver arriba y limpiar la búsqueda"><span class="badge26">MUNDIAL 26</span><span class="sub">Mi álbum</span></div>
     <button class="theme-btn" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema"><span class="t-ic">🌙</span> <span class="mode-tag t-lb">Oscuro</span></button>
     <div class="scores">
-      <div class="stat tengo"><div class="k" id="s-have">0</div><div class="l">Pegadas</div></div>
-      <div class="stat pct"><div class="k" id="s-pct">0%</div><div class="l">de 980</div></div>
       <div class="stat falta"><div class="k" id="s-falta">980</div><div class="l">Te faltan</div></div>
+      <div class="stat tengo"><div class="k" id="s-have">0</div><div class="l">Pegadas</div></div>
       <div class="stat repe"><div class="k" id="s-repe">0</div><div class="l">Repetidas</div></div>
+      <div class="stat pct"><div class="k" id="s-pct">0%</div><div class="l">de 980</div></div>
     </div>
     <div class="progress-wrap"><div class="progress"><i id="bar"></i></div></div>
   </div>
@@ -2723,20 +2724,17 @@ var qrcode = function() {
   const nav  = document.getElementById('nav');
   nav.innerHTML = '<span class="lbl">Saltar a</span>';
 
-  // ---------- FWC card ----------
+  // ---------- Encabezado de sección (compartido) ----------
+  const CHEV='<svg class="ch-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>';
+  function confHeadHTML(name){ return `<span class="ch-name">${name}</span><span class="ch-line"></span><span class="ch-count" data-gcount>0/0</span>`+CHEV; }
+
+  // ---------- Especiales · FWC (mismo formato de sección que los grupos) ----------
+  const fwcHead = document.createElement('h2'); fwcHead.className='conf-head'; fwcHead.id='fwc'; fwcHead.innerHTML=confHeadHTML('✨ Especiales · FWC'); main.appendChild(fwcHead);
+  const fwcWrap = document.createElement('div'); fwcWrap.className='teams teams-fwc';
   const fwcCard = document.createElement('section');
-  fwcCard.className = 'fwc'; fwcCard.id = 'fwc';
+  fwcCard.className = 'fwc';
   fwcCard.dataset.search = 'fwc especiales especial';
-  fwcCard.innerHTML = `
-    <div class="holo-strip"></div>
-    <div class="team-head" data-toggle>
-      <span class="flag">✨</span>
-      <div><div class="team-name">Especiales · FWC</div>
-      <div class="team-code">EMBLEMA · MASCOTAS · BALÓN · FIFA MUSEUM</div></div>
-      <div class="team-meta"><div class="team-count" data-count>0/20</div><div class="mini"><i data-bar></i></div></div>
-      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
-    </div>
-    <div data-fwcbody></div>`;
+  fwcCard.innerHTML = `<div class="holo-strip"></div><div data-fwcbody></div>`;
   const fwcBody = fwcCard.querySelector('[data-fwcbody]');
   FWC_GROUPS.forEach(g=>{
     const sh = document.createElement('div'); sh.className='subhead'; sh.textContent=g.label;
@@ -2748,11 +2746,8 @@ var qrcode = function() {
     });
     fwcBody.appendChild(sh); fwcBody.appendChild(grid);
   });
-  main.appendChild(fwcCard);
+  fwcWrap.appendChild(fwcCard); main.appendChild(fwcWrap);
   const fwcChip = document.createElement('a'); fwcChip.href='#fwc'; fwcChip.textContent='✨ FWC'; nav.appendChild(fwcChip);
-
-  const CHEV='<svg class="ch-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>';
-  function confHeadHTML(name){ return `<span class="ch-name">${name}</span><span class="ch-line"></span><span class="ch-count" data-gcount>0/0</span>`+CHEV; }
 
   // ---------- Grupos + equipos ----------
   GROUPS.forEach(g=>{
@@ -2820,10 +2815,12 @@ var qrcode = function() {
     el.innerHTML = inner;
   }
   function refreshCard(card){
+    if(!card) return;
+    const cEl=card.querySelector('[data-count]'), bEl=card.querySelector('[data-bar]');
+    if(!cEl||!bEl) return;
     const tiles = card.querySelectorAll('.tile');
     let have=0; const total=tiles.length;
     tiles.forEach(t=>{ if(get(t.dataset.id)>=1) have++; });
-    const cEl=card.querySelector('[data-count]'), bEl=card.querySelector('[data-bar]');
     cEl.textContent=have+"/"+total; cEl.classList.toggle('full',have===total);
     bEl.style.width=(have/total*100)+"%";
     card.classList.toggle('is-full', have===total && card.classList.contains('team'));
@@ -2852,7 +2849,7 @@ var qrcode = function() {
   function updateAllGroupCounts(){ document.querySelectorAll('.conf-head').forEach(updateGroupCount); }
 
   document.querySelectorAll('.tile').forEach(paintTile);
-  document.querySelectorAll('.team, .fwc').forEach(refreshCard);
+  document.querySelectorAll('.team').forEach(refreshCard);
   refreshGlobal();
   updateAllGroupCounts();
 
@@ -2861,7 +2858,7 @@ var qrcode = function() {
     const id=el.dataset.id; let c=get(id)+delta; if(c<0)c=0;
     set(id,c); paintTile(el);
     if(delta>0){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
-    refreshCard(el.closest('.team, .fwc')); refreshGlobal();
+    refreshCard(el.closest('.team')); refreshGlobal();
     const wrap=el.closest('.teams');
     if(wrap && wrap.previousElementSibling) updateGroupCount(wrap.previousElementSibling);
     save();
@@ -2870,9 +2867,7 @@ var qrcode = function() {
     const tile=e.target.closest('.tile');
     if(tile){ bump(tile, eraseMode?-1:1); return; }
     const ch=e.target.closest('.conf-head');
-    if(ch){ ch.classList.toggle('collapsed'); return; }
-    const head=e.target.closest('[data-toggle]');
-    if(head){ head.closest('.fwc').classList.toggle('collapsed'); }
+    if(ch){ ch.classList.toggle('collapsed'); }
   });
   main.addEventListener('contextmenu', e=>{ const t=e.target.closest('.tile'); if(t){ e.preventDefault(); bump(t,-1); } });
 
@@ -2899,7 +2894,7 @@ var qrcode = function() {
   const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   search.addEventListener('input', ()=>{
     const q=norm(search.value.trim());
-    if(q){ document.querySelectorAll('.conf-head.collapsed').forEach(h=>h.classList.remove('collapsed')); fwcCard.classList.remove('collapsed'); }
+    if(q){ document.querySelectorAll('.conf-head.collapsed').forEach(h=>h.classList.remove('collapsed')); }
     document.querySelectorAll('.team').forEach(t=>{
       const hay=norm(t.dataset.search);                 // país: nombre + código
       const grp=norm(t.dataset.group||'');              // grupo: "grupo a"
@@ -2915,6 +2910,8 @@ var qrcode = function() {
   });
   document.getElementById('brand').addEventListener('click', ()=>{
     search.value=''; search.dispatchEvent(new Event('input'));
+    document.querySelectorAll('.conf-head.collapsed').forEach(h=>h.classList.remove('collapsed'));
+    collapsed=false; const cb=document.getElementById('btn-collapse'); if(cb) cb.textContent='Colapsar todo';
     window.scrollTo({top:0, behavior:'smooth'});
   });
 
@@ -2922,7 +2919,7 @@ var qrcode = function() {
   let collapsed=false;
   document.getElementById('btn-collapse').addEventListener('click', e=>{
     collapsed=!collapsed;
-    document.querySelectorAll('.conf-head, .fwc').forEach(c=>c.classList.toggle('collapsed', collapsed));
+    document.querySelectorAll('.conf-head').forEach(c=>c.classList.toggle('collapsed', collapsed));
     e.target.textContent=collapsed?"Expandir todo":"Colapsar todo";
   });
 
@@ -3029,7 +3026,7 @@ var qrcode = function() {
     if(!confirm("Voy a reemplazar tu álbum por esta lista:\n• "+have+" / "+BASE_TOTAL+" pegadas\n• "+repe+" repetidas\n\n¿Continuar?")) return;
     state=ns; save();
     document.querySelectorAll('.tile').forEach(paintTile);
-    document.querySelectorAll('.team, .fwc').forEach(refreshCard);
+    document.querySelectorAll('.team').forEach(refreshCard);
     refreshGlobal();
     updateAllGroupCounts();
     ovImport.classList.remove('open');
@@ -3128,7 +3125,7 @@ var qrcode = function() {
         const data=JSON.parse(r.result); if(typeof data!=='object') throw 0;
         state=data; save();
         document.querySelectorAll('.tile').forEach(paintTile);
-        document.querySelectorAll('.team, .fwc').forEach(refreshCard); refreshGlobal();
+        document.querySelectorAll('.team').forEach(refreshCard); refreshGlobal();
         updateAllGroupCounts();
         toast("Copia importada ✓");
       }catch(e){ toast("Archivo inválido"); } fileInput.value=""; };
@@ -3138,7 +3135,7 @@ var qrcode = function() {
     if(confirm("¿Seguro que querés reiniciar todo el álbum? Se borra el progreso de este navegador (la copia descargada se conserva).")){
       state={}; save();
       document.querySelectorAll('.tile').forEach(paintTile);
-      document.querySelectorAll('.team, .fwc').forEach(refreshCard); refreshGlobal();
+      document.querySelectorAll('.team').forEach(refreshCard); refreshGlobal();
       updateAllGroupCounts();
       toast("Álbum reiniciado");
     }
