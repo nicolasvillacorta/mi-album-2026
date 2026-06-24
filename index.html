@@ -183,7 +183,12 @@
   .trade-friend-row input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card);color:var(--ink);font:inherit;font-size:13px}
   #trade-results{margin-top:6px}
   .trade-res{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--card)}
-  .trade-res h3{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .trade-res h3{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .trade-res h3 .trade-h-left{display:flex;align-items:center;gap:8px;min-width:0}
+  .trade-copy-btn{flex:none;font:inherit;font-weight:600;font-size:11.5px;cursor:pointer;background:var(--card);color:var(--ink-soft);
+    border:1px solid var(--line);border-radius:8px;padding:4px 9px;white-space:nowrap;transition:.15s}
+  .trade-copy-btn:hover{color:var(--ink);border-color:var(--ink-soft)}
+  .trade-copy-btn:active{transform:scale(.95)}
   .trade-res .tot{font-family:'Anton',sans-serif;font-size:12px;border-radius:99px;padding:1px 9px;color:#fff}
   .trade-res.get{border-color:#1fae5a}
   .trade-res.get h3{color:var(--green-deep)} .trade-res.get .tot{background:var(--green)}
@@ -3092,17 +3097,32 @@ var qrcode = function() {
     });
     return {pedir,dar,np,nd};
   }
+  function copyText(t, msg){
+    const done=()=>toast(msg||'Copiado ✓');
+    const fallback=()=>{ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(); }catch(e){ toast('No se pudo copiar'); } };
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done, fallback); }
+    else fallback();
+  }
   function renderTrade(friend){
     const {pedir,dar,np,nd}=tradeMatch(friend);
+    function listText(emoji,header,list){
+      return emoji+' '+header+'\n'+list.map(([lab,nums])=>lab+': '+nums.join(', ')).join('\n');
+    }
     function block(cls,emoji,title,sub,list,total){
-      let s=`<div class="trade-res ${cls}"><h3>${emoji} ${title} <span class="tot">${total}</span></h3><div class="sub">${sub}</div>`;
+      const copyBtn = list.length ? `<button class="trade-copy-btn" id="trade-copy-${cls}" type="button">📋 Copiar</button>` : '';
+      let s=`<div class="trade-res ${cls}"><h3><span class="trade-h-left">${emoji} ${title} <span class="tot">${total}</span></span>${copyBtn}</h3><div class="sub">${sub}</div>`;
       s += list.length ? list.map(([lab,nums])=>`<div class="trade-line"><b>${lab}:</b> ${nums.join(', ')}</div>`).join('')
                        : `<div class="trade-empty">— Nada por acá —</div>`;
       return s+`</div>`;
     }
-    document.getElementById('trade-results').innerHTML =
+    const box=document.getElementById('trade-results');
+    box.innerHTML =
       block('get','🟢','Pedile a tu amigo','Repetidas suyas que a vos te faltan',pedir,np)+
       block('give','🔵','Ofrecele a tu amigo','Repetidas tuyas que a él le faltan',dar,nd);
+    const getBtn=document.getElementById('trade-copy-get');
+    if(getBtn) getBtn.addEventListener('click', ()=> copyText(listText('🟢','Te pido estas figus ('+np+'):',pedir), 'Lista copiada ✓'));
+    const giveBtn=document.getElementById('trade-copy-give');
+    if(giveBtn) giveBtn.addEventListener('click', ()=> copyText(listText('🔵','Te ofrezco estas figus ('+nd+'):',dar), 'Lista copiada ✓'));
   }
 
   const ovTrade=document.getElementById('overlay-trade');
