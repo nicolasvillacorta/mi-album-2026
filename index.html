@@ -179,8 +179,8 @@
   .trade-code-col textarea{flex:1;min-height:64px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--paper);color:var(--ink);
     font-family:'TwemojiFlags',ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.4;resize:none;word-break:break-all}
   .trade-btns{display:flex;gap:8px;flex-wrap:wrap}
-  .trade-friend-row{display:flex;gap:8px;flex-wrap:wrap}
-  .trade-friend-row input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card);color:var(--ink);font:inherit;font-size:13px}
+  .trade-friend-row{display:flex;flex-direction:column;gap:8px}
+  .trade-friend-row textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card);color:var(--ink);font:inherit;font-size:13px;resize:vertical;line-height:1.5}
   #trade-results{margin-top:6px}
   .trade-res{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--card)}
   .trade-res h3{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:8px;justify-content:space-between}
@@ -359,7 +359,7 @@
   <div class="modal modal-wide">
     <h2>Cambios con un amigo</h2>
     <div class="trade-scroll">
-    <p class="hint">Pasale tu <b>código</b> a un amigo (texto o QR). Cuando él te pase el suyo, pegalo abajo y te digo qué figus se sirven mutuamente. El código solo guarda qué tenés, qué te falta y tus repetidas.</p>
+    <p class="hint">Pasale tu <b>código</b> a un amigo (texto o QR). Cuando él te pase el suyo, pegalo abajo y te digo qué figus se sirven mutuamente. También podés pegar la <b>lista de texto</b> que te comparta (la del botón Compartir). El código solo guarda qué tenés, qué te falta y tus repetidas.</p>
 
     <div class="trade-block">
       <div class="trade-label">1 · Tu código (pasáselo a tu amigo)</div>
@@ -376,16 +376,16 @@
     </div>
 
     <div class="trade-block">
-      <div class="trade-label">2 · Código de tu amigo</div>
+      <div class="trade-label">2 · Código o lista de tu amigo</div>
       <div class="trade-friend-row">
-        <input id="trade-friendcode" placeholder="Pegá acá el código de tu amigo (MUN26-…)" autocomplete="off" spellcheck="false">
-        <button class="btn primary" id="trade-match">Buscar</button>
+        <textarea id="trade-friendcode" rows="3" placeholder="Pegá acá el código de tu amigo (MUN26-…) o su lista de texto (la del botón Compartir)" autocomplete="off" spellcheck="false"></textarea>
       </div>
       <div id="trade-results"></div>
     </div>
     </div>
 
     <div class="modal-actions">
+      <button class="btn primary grow" id="trade-match">Buscar cambios</button>
       <button class="btn" id="trade-close">Cerrar</button>
     </div>
   </div>
@@ -3016,11 +3016,14 @@ var qrcode = function() {
     text.split(/\r?\n/).forEach(raw=>{
       const line=raw.trim();
       if(!line) return;
-      if(/^me\s*faltan/i.test(line)){ section='falta'; return; }
-      if(/^repetidas/i.test(line)){ section='repe'; return; }
-      if(/^figuritas app/i.test(line) || /^usa\s*m[eé]x\s*can/i.test(line)) return;
+      // Encabezados de sección: toleran emojis y contadores (ej. "🔁 REPETIDAS (65):", "Me faltan")
+      if(/faltan|faltante/i.test(line)){ section='falta'; return; }
+      if(/repetid|repes/i.test(line)){ section='repe'; return; }
       const ci=line.indexOf(':'); if(ci<0 || !section) return;
-      const code=line.slice(0,ci).trim().split(/\s+/)[0].toUpperCase();
+      // El código puede venir con la bandera antes o después: tomo el primer grupo de 2-4 letras
+      const cm=line.slice(0,ci).match(/[A-Za-z]{2,4}/);
+      if(!cm) return;
+      const code=cm[0].toUpperCase();
       line.slice(ci+1).split(',').forEach(part=>{
         const m=part.trim().match(/^(00|\d{1,2})\s*(?:\(\s*[×xX]\s*(\d+)\s*\))?$/);
         if(!m) return;
@@ -3145,14 +3148,28 @@ var qrcode = function() {
     const t="Mi código de figus para cambiar (pegalo en la app, botón \"Cambios con amigo\"):\n"+document.getElementById('trade-mycode').value;
     window.open("https://wa.me/?text="+encodeURIComponent(t),"_blank");
   });
+  function friendFromList(text){
+    const parsed=parseList(text);
+    if(!parsed) return null;
+    const ns={}; ALL_IDS.forEach(id=>ns[id]=1);   // por defecto: la tiene
+    parsed.falta.forEach(id=>{ ns[id]=0; });        // le falta
+    for(const id in parsed.repe) ns[id]=parsed.repe[id]; // repetida
+    return ns;
+  }
   function doMatch(){
-    const friend=decodeToken(document.getElementById('trade-friendcode').value);
+    const raw=document.getElementById('trade-friendcode').value;
     const box=document.getElementById('trade-results');
-    if(!friend){ box.innerHTML='<div class="trade-err">Código inválido. Pegá el código completo de tu amigo (empieza con MUN26-).</div>'; return; }
+    let friend=null;
+    if(/MUN26-/.test(raw)) friend=decodeToken(raw);      // es un código
+    else friend=friendFromList(raw);                     // es una lista de texto
+    if(!friend){
+      box.innerHTML='<div class="trade-err">No pude leerlo. Pegá el código completo de tu amigo (empieza con MUN26-) o su lista de texto del botón Compartir.</div>';
+      return;
+    }
     renderTrade(friend);
   }
   document.getElementById('trade-match').addEventListener('click', doMatch);
-  document.getElementById('trade-friendcode').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doMatch(); } });
+  document.getElementById('trade-friendcode').addEventListener('keydown', e=>{ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); doMatch(); } });
 
   // ---------- Backup ----------
   document.getElementById('btn-export').addEventListener('click', ()=>{
