@@ -168,11 +168,9 @@
   .modal textarea{flex:1;min-height:260px;margin:0 20px;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'TwemojiFlags',ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;resize:vertical;background:var(--paper);color:var(--ink)}
   .modal-actions{display:flex;gap:10px;padding:16px 20px;flex-wrap:wrap}
   .modal-actions .grow{flex:1}
-  .share-filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
-  .share-filters .chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink);
-    background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 13px;cursor:pointer;user-select:none;transition:.15s}
-  .share-filters .chk:has(input:checked){border-color:var(--magenta);color:var(--magenta-deep);background:rgba(230,0,126,.07)}
-  .share-filters .chk input{accent-color:var(--magenta);width:16px;height:16px;cursor:pointer;margin:0}
+  .share-actions{display:flex;flex-wrap:wrap;gap:8px}
+  .share-actions .cp{flex:1 1 140px}
+  .share-actions .cls{flex:1 1 100%}
   .modal-wide{max-width:720px;max-height:92vh}
   .trade-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .trade-block{margin:0 20px 4px}
@@ -217,7 +215,7 @@
     color:#fff;background:#0a66c2;border-radius:99px;padding:7px 14px;transition:filter .15s}
   .credits-link:hover{filter:brightness(1.08)}
   .credits-note{max-width:520px;font-size:12.5px;color:var(--ink-soft);line-height:1.6}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:600;
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:600;
     opacity:0;pointer-events:none;transition:.25s;z-index:200;box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   /* Botón flotante de modo (solo celular) */
@@ -337,14 +335,12 @@
   <div class="modal">
     <h2 id="modal-title">Compartir mi lista</h2>
     <p class="hint" id="modal-hint"></p>
-    <div class="share-filters">
-      <label class="chk"><input type="checkbox" id="chk-falta" checked> Faltantes</label>
-      <label class="chk"><input type="checkbox" id="chk-repe" checked> Repetidas</label>
-    </div>
     <textarea id="modal-text" readonly spellcheck="false"></textarea>
-    <div class="modal-actions">
-      <button class="btn primary grow" id="modal-copy">Copiar</button>
-      <button class="btn" id="modal-close">Cerrar</button>
+    <div class="modal-actions share-actions">
+      <button class="btn cp" id="copy-falta">Copiar faltantes</button>
+      <button class="btn cp" id="copy-repe">Copiar repetidas</button>
+      <button class="btn primary cp" id="copy-todo">Copiar todo</button>
+      <button class="btn cls" id="modal-close">Cerrar</button>
     </div>
   </div>
 </div>
@@ -3008,32 +3004,25 @@ var qrcode = function() {
 
   // ---------- Modal compartir ----------
   const overlay=document.getElementById('overlay');
-  const chkFalta=document.getElementById('chk-falta'), chkRepe=document.getElementById('chk-repe');
-  function refreshShareText(){
-    document.getElementById('modal-text').value=buildShare({falta:chkFalta.checked, repe:chkRepe.checked});
+  function copyShare(opts, msg){
+    const ta=document.getElementById('modal-text');
+    ta.value=buildShare(opts);   // la vista previa refleja lo que se copia
+    ta.select();
+    const ok=()=>toast(msg);
+    const fb=()=>{ try{ document.execCommand('copy'); ok(); }catch(e){ toast("Copiá el texto manualmente"); } };
+    if(navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(ok, fb); } else fb();
   }
-  function onFilterChange(changed){
-    // No permitir ninguna marcada: re-marco la otra
-    if(!chkFalta.checked && !chkRepe.checked){ (changed===chkFalta ? chkRepe : chkFalta).checked=true; }
-    refreshShareText();
-  }
-  chkFalta.addEventListener('change', ()=>onFilterChange(chkFalta));
-  chkRepe.addEventListener('change', ()=>onFilterChange(chkRepe));
   function openShare(){
-    chkFalta.checked=true; chkRepe.checked=true;   // por defecto: todas
-    refreshShareText();
-    document.getElementById('modal-hint').textContent="Elegí qué incluir, copiala y compartila para coordinar cambios.";
+    document.getElementById('modal-text').value=buildShare({falta:true, repe:true});   // vista previa inicial: todo
+    document.getElementById('modal-hint').textContent="Elegí qué copiar y compartilo para coordinar cambios.";
     overlay.classList.add('open');
   }
   document.getElementById('btn-share').addEventListener('click', openShare);
   document.getElementById('modal-close').addEventListener('click', ()=>overlay.classList.remove('open'));
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.classList.remove('open'); });
-  document.getElementById('modal-copy').addEventListener('click', ()=>{
-    const ta=document.getElementById('modal-text'); ta.select();
-    if(navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(()=>toast("Lista copiada ✓"), fallbackCopy); }
-    else fallbackCopy();
-    function fallbackCopy(){ try{ document.execCommand('copy'); toast("Lista copiada ✓"); }catch(e){ toast("Copiá el texto manualmente"); } }
-  });
+  document.getElementById('copy-falta').addEventListener('click', ()=> copyShare({falta:true, repe:false}, "Faltantes copiadas ✓"));
+  document.getElementById('copy-repe').addEventListener('click', ()=> copyShare({falta:false, repe:true}, "Repetidas copiadas ✓"));
+  document.getElementById('copy-todo').addEventListener('click', ()=> copyShare({falta:true, repe:true}, "Lista completa copiada ✓"));
 
   // ---------- Importar desde lista de texto ----------
   const VALID = new Set([...document.querySelectorAll('.tile')].map(t=>t.dataset.id));
