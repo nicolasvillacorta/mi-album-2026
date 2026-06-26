@@ -347,7 +347,7 @@
   <div class="modal">
     <h2>Importar lista</h2>
     <p class="hint">Pegá acá la lista que genera el botón <b>Compartir</b> (desde tu teléfono u otra copia). Al importar se <b>reemplaza</b> tu álbum actual. Conviene pegar la lista completa (Me faltan + Repetidas).</p>
-    <textarea id="import-text" spellcheck="false" placeholder="Figuritas App - Lista&#10;Usa Méx Can 26&#10;Me faltan&#10;FWC 🏆: 1, 2&#10;MEX 🇲🇽: 4, 5, 8&#10;...&#10;&#10;Repetidas&#10;MEX 🇲🇽: 2, 3, 20 (×2)&#10;..."></textarea>
+    <textarea id="import-text" spellcheck="false" placeholder="Me faltan&#10;FWC 🏆: 1, 2&#10;MEX 🇲🇽: 4, 5, 8&#10;...&#10;&#10;Repetidas&#10;MEX 🇲🇽: 2, 3, 20 (×2)&#10;..."></textarea>
     <div class="modal-actions">
       <button class="btn primary grow" id="import-go">Importar</button>
       <button class="btn" id="import-close">Cancelar</button>
@@ -2979,7 +2979,7 @@ var qrcode = function() {
   }
   function buildShare(){
     const rows=getRows();
-    const L=["Figuritas App - Lista","Usa Méx Can 26","Me faltan"];
+    const L=["Mi álbum · Mundial 2026","Hacé el tuyo gratis y sin publicidad 👉 https://nicolasvillacorta.github.io/mi-album-2026/","","Me faltan"];
     let any=false;
     rows.forEach(r=>{ const l=lineFor(r,'falta'); if(l){ L.push(l); any=true; } });
     if(!any) L.push("¡No te falta ninguna! 🎉");
