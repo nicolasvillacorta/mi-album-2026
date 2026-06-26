@@ -168,6 +168,11 @@
   .modal textarea{flex:1;min-height:260px;margin:0 20px;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'TwemojiFlags',ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;resize:vertical;background:var(--paper);color:var(--ink)}
   .modal-actions{display:flex;gap:10px;padding:16px 20px;flex-wrap:wrap}
   .modal-actions .grow{flex:1}
+  .share-filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+  .share-filters .chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink);
+    background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 13px;cursor:pointer;user-select:none;transition:.15s}
+  .share-filters .chk:has(input:checked){border-color:var(--magenta);color:var(--magenta-deep);background:rgba(230,0,126,.07)}
+  .share-filters .chk input{accent-color:var(--magenta);width:16px;height:16px;cursor:pointer;margin:0}
   .modal-wide{max-width:720px;max-height:92vh}
   .trade-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .trade-block{margin:0 20px 4px}
@@ -332,6 +337,10 @@
   <div class="modal">
     <h2 id="modal-title">Compartir mi lista</h2>
     <p class="hint" id="modal-hint"></p>
+    <div class="share-filters">
+      <label class="chk"><input type="checkbox" id="chk-falta" checked> Faltantes</label>
+      <label class="chk"><input type="checkbox" id="chk-repe" checked> Repetidas</label>
+    </div>
     <textarea id="modal-text" readonly spellcheck="false"></textarea>
     <div class="modal-actions">
       <button class="btn primary grow" id="modal-copy">Copiar</button>
@@ -2977,25 +2986,43 @@ var qrcode = function() {
     });
     return out.length ? (row.label+": "+out.join(", ")) : null;
   }
-  function buildShare(){
+  function buildShare(opts){
+    opts = opts || {falta:true, repe:true};
     const rows=getRows();
-    const L=["Mi álbum · Mundial 2026","Hacé el tuyo gratis y sin publicidad 👉 https://nicolasvillacorta.github.io/mi-album-2026/","","Me faltan"];
-    let any=false;
-    rows.forEach(r=>{ const l=lineFor(r,'falta'); if(l){ L.push(l); any=true; } });
-    if(!any) L.push("¡No te falta ninguna! 🎉");
-    L.push("");
-    L.push("Repetidas");
-    any=false;
-    rows.forEach(r=>{ const l=lineFor(r,'repe'); if(l){ L.push(l); any=true; } });
-    if(!any) L.push("Todavía no tengo repetidas.");
+    const L=["Mi álbum · Mundial 2026","Hacé el tuyo gratis y sin publicidad 👉 https://nicolasvillacorta.github.io/mi-album-2026/",""];
+    if(opts.falta){
+      L.push("Me faltan");
+      let any=false;
+      rows.forEach(r=>{ const l=lineFor(r,'falta'); if(l){ L.push(l); any=true; } });
+      if(!any) L.push("¡No te falta ninguna! 🎉");
+    }
+    if(opts.falta && opts.repe) L.push("");
+    if(opts.repe){
+      L.push("Repetidas");
+      let any=false;
+      rows.forEach(r=>{ const l=lineFor(r,'repe'); if(l){ L.push(l); any=true; } });
+      if(!any) L.push("Todavía no tengo repetidas.");
+    }
     return L.join("\n");
   }
 
   // ---------- Modal compartir ----------
   const overlay=document.getElementById('overlay');
+  const chkFalta=document.getElementById('chk-falta'), chkRepe=document.getElementById('chk-repe');
+  function refreshShareText(){
+    document.getElementById('modal-text').value=buildShare({falta:chkFalta.checked, repe:chkRepe.checked});
+  }
+  function onFilterChange(changed){
+    // No permitir ninguna marcada: re-marco la otra
+    if(!chkFalta.checked && !chkRepe.checked){ (changed===chkFalta ? chkRepe : chkFalta).checked=true; }
+    refreshShareText();
+  }
+  chkFalta.addEventListener('change', ()=>onFilterChange(chkFalta));
+  chkRepe.addEventListener('change', ()=>onFilterChange(chkRepe));
   function openShare(){
-    document.getElementById('modal-text').value=buildShare();
-    document.getElementById('modal-hint').textContent="Copiala o mandala por WhatsApp para coordinar cambios con tus amigos.";
+    chkFalta.checked=true; chkRepe.checked=true;   // por defecto: todas
+    refreshShareText();
+    document.getElementById('modal-hint').textContent="Elegí qué incluir, copiala y compartila para coordinar cambios.";
     overlay.classList.add('open');
   }
   document.getElementById('btn-share').addEventListener('click', openShare);
