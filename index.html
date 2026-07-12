@@ -66,6 +66,11 @@
   button.btn:hover{border-color:#cfc8ba}
   button.btn:active{transform:translateY(1px)}
   button.btn.primary{background:var(--magenta);border-color:var(--magenta);color:#fff}
+  .chk-hide{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:14px;cursor:pointer;user-select:none;
+    background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:9px 14px;box-shadow:var(--shadow);transition:.15s}
+  .chk-hide:has(input:checked){border-color:var(--green);color:var(--green-deep);background:rgba(10,166,75,.08)}
+  .chk-hide input{accent-color:var(--green);width:16px;height:16px;cursor:pointer;margin:0}
+  html.dark .chk-hide:has(input:checked){color:#46d488}
   button.btn.primary:hover{background:var(--magenta-deep);border-color:var(--magenta-deep)}
   button.btn.wa{background:#25D366;border-color:#1ebe5a;color:#06351b}
   button.btn.wa:hover{background:#1ebe5a}
@@ -312,6 +317,7 @@
       <span class="info-tip">En compu también podés hacer <b>click derecho</b> sobre una figu para restar al instante.</span>
     </div>
   </span>
+  <label class="chk-hide"><input type="checkbox" id="chk-hide-full"> Ocultar completadas</label>
   <button class="btn" id="btn-collapse">Colapsar todo</button>
 </div>
 
@@ -2899,6 +2905,8 @@ var qrcode = function() {
     const wrap=el.closest('.teams');
     if(wrap && wrap.previousElementSibling) updateGroupCount(wrap.previousElementSibling);
     save();
+    // Si está activo "Ocultar completadas", refresco el filtro (con una pausa para ver la animación)
+    if(chkHideFull && chkHideFull.checked) setTimeout(applyFilter, 450);
   }
   main.addEventListener('click', e=>{
     const tile=e.target.closest('.tile');
@@ -2940,27 +2948,36 @@ var qrcode = function() {
   document.addEventListener('click', ()=>modePop.classList.remove('open'));
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') modePop.classList.remove('open'); });
 
-  // ---------- Buscar ----------
+  // ---------- Buscar / filtrar ----------
   const search=document.getElementById('search');
+  const chkHideFull=document.getElementById('chk-hide-full');
   const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  search.addEventListener('input', ()=>{
+  function applyFilter(){
     const q=norm(search.value.trim());
+    const hideFull=chkHideFull.checked;
     if(q){ document.querySelectorAll('.conf-head.collapsed').forEach(h=>h.classList.remove('collapsed')); }
     document.querySelectorAll('.team').forEach(t=>{
       const hay=norm(t.dataset.search);                 // país: nombre + código
       const grp=norm(t.dataset.group||'');              // grupo: "grupo a"
       const match = !q || hay.includes(q) || (q.length>=4 && grp.startsWith(q));
-      t.style.display = match ? '' : 'none';
+      const full = hideFull && t.classList.contains('is-full');
+      t.style.display = (match && !full) ? '' : 'none';
     });
     document.querySelectorAll('.conf-head').forEach(h=>{
       let next=h.nextElementSibling, vis=false;
       if(next && next.classList.contains('teams')) vis=[...next.children].some(c=>c.style.display!=='none');
       h.style.display=vis?'':'none';
     });
-    fwcCard.style.display=(!q||norm(fwcCard.dataset.search).includes(q))?'':'none';
+    const fwcMatch = !q || norm(fwcCard.dataset.search).includes(q);
+    fwcCard.style.display=fwcMatch?'':'none';
+  }
+  search.addEventListener('input', applyFilter);
+  chkHideFull.addEventListener('change', ()=>{
+    applyFilter();
+    toast(chkHideFull.checked ? "Selecciones completas ocultas" : "Mostrando todas las selecciones");
   });
   document.getElementById('brand').addEventListener('click', ()=>{
-    search.value=''; search.dispatchEvent(new Event('input'));
+    search.value=''; chkHideFull.checked=false; applyFilter();
     document.querySelectorAll('.conf-head.collapsed').forEach(h=>h.classList.remove('collapsed'));
     collapsed=false; const cb=document.getElementById('btn-collapse'); if(cb) cb.textContent='Colapsar todo';
     window.scrollTo({top:0, behavior:'smooth'});
@@ -3215,7 +3232,7 @@ var qrcode = function() {
         const data=JSON.parse(r.result); if(typeof data!=='object') throw 0;
         state=data; save();
         document.querySelectorAll('.tile').forEach(paintTile);
-        document.querySelectorAll('.team').forEach(refreshCard); refreshGlobal();
+        document.querySelectorAll('.team').forEach(refreshCard); refreshGlobal(); if(typeof applyFilter==='function') applyFilter();
         updateAllGroupCounts();
         toast("Copia importada ✓");
       }catch(e){ toast("Archivo inválido"); } fileInput.value=""; };
@@ -3225,7 +3242,7 @@ var qrcode = function() {
     if(confirm("¿Seguro que querés reiniciar todo el álbum? Se borra el progreso de este navegador (la copia descargada se conserva).")){
       state={}; save();
       document.querySelectorAll('.tile').forEach(paintTile);
-      document.querySelectorAll('.team').forEach(refreshCard); refreshGlobal();
+      document.querySelectorAll('.team').forEach(refreshCard); refreshGlobal(); if(typeof applyFilter==='function') applyFilter();
       updateAllGroupCounts();
       toast("Álbum reiniciado");
     }
