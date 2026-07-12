@@ -57,7 +57,8 @@
     background:linear-gradient(90deg,var(--magenta),#ff7ac1 50%,var(--green));transition:width .5s cubic-bezier(.2,.8,.2,1)}
 
   .toolbar{max-width:1180px;margin:18px auto 4px;padding:0 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .search{flex:1 1 240px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 12px;box-shadow:var(--shadow)}
+  .search{flex:1 1 100%;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 12px;box-shadow:var(--shadow)}
+  .toolbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .search input{border:0;outline:0;background:transparent;font:inherit;font-size:15px;width:100%;color:var(--ink)}
   .search svg{flex:none;opacity:.5}
   button.btn{font:inherit;font-weight:600;font-size:14px;cursor:pointer;background:var(--card);color:var(--ink);
@@ -317,8 +318,10 @@
       <span class="info-tip">En compu también podés hacer <b>click derecho</b> sobre una figu para restar al instante.</span>
     </div>
   </span>
-  <label class="chk-hide"><input type="checkbox" id="chk-hide-full"> Ocultar completadas</label>
-  <button class="btn" id="btn-collapse">Colapsar todo</button>
+  <span class="toolbar-right">
+    <label class="chk-hide"><input type="checkbox" id="chk-hide-full"> Ocultar completadas</label>
+    <button class="btn" id="btn-collapse">Colapsar todo</button>
+  </span>
 </div>
 
 <nav class="nav" id="nav"></nav>
@@ -2963,13 +2966,15 @@ var qrcode = function() {
       const full = hideFull && t.classList.contains('is-full');
       t.style.display = (match && !full) ? '' : 'none';
     });
+    const fwcMatch = !q || norm(fwcCard.dataset.search).includes(q);
+    const fwcTiles=fwcCard.querySelectorAll('.tile');
+    const fwcFull = hideFull && fwcTiles.length>0 && [...fwcTiles].every(t=>get(t.dataset.id)>=1);
+    fwcCard.style.display=(fwcMatch && !fwcFull)?'':'none';
     document.querySelectorAll('.conf-head').forEach(h=>{
       let next=h.nextElementSibling, vis=false;
       if(next && next.classList.contains('teams')) vis=[...next.children].some(c=>c.style.display!=='none');
       h.style.display=vis?'':'none';
     });
-    const fwcMatch = !q || norm(fwcCard.dataset.search).includes(q);
-    fwcCard.style.display=fwcMatch?'':'none';
   }
   search.addEventListener('input', applyFilter);
   chkHideFull.addEventListener('change', ()=>{
