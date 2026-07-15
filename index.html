@@ -2880,8 +2880,10 @@ var qrcode = function() {
     document.getElementById('s-have').textContent=have;
     document.getElementById('s-falta').textContent=BASE_TOTAL-have;
     document.getElementById('s-repe').textContent=repe;
-    document.getElementById('s-pct').textContent=Math.round(have/BASE_TOTAL*100)+"%";
-    document.getElementById('bar').style.width=(have/BASE_TOTAL*100)+"%";
+    const rawPct = have/BASE_TOTAL*100;
+    const pct = have>=BASE_TOTAL ? "100" : (Math.floor(rawPct*10)/10).toFixed(1);
+    document.getElementById('s-pct').textContent=pct+"%";
+    document.getElementById('bar').style.width=rawPct+"%";
   }
 
   function updateGroupCount(head){
